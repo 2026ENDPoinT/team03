@@ -1,4 +1,4 @@
-node_modules/
+﻿node_modules/
 .env
 .env.*
 !.env.example
@@ -6,3 +6,7 @@ node_modules/
 *.db-*
 *.sqlite
 *.sqlite3
+
+*.db
+*.db-shm
+*.db-wal

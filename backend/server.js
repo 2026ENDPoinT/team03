@@ -1,12 +1,48 @@
-const express = require("express");
+﻿const express = require("express");
+const Database = require("better-sqlite3");
+const path = require("path");
 
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+// backend 폴더 안에 데이터베이스 파일 생성
+const db = new Database(path.join(__dirname, "grades.db"));
 
-// 임시 저장 공간: 서버를 종료하면 데이터가 사라짐
-const exams = [];
+db.exec(`
+    CREATE TABLE IF NOT EXISTS exams (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        subject_name TEXT NOT NULL,
+        my_score REAL NOT NULL,
+        max_score REAL NOT NULL,
+        average REAL NOT NULL,
+        standard_deviation REAL NOT NULL
+    )
+`);
+
+const insertExam = db.prepare(`
+    INSERT INTO exams (
+        subject_name,
+        my_score,
+        max_score,
+        average,
+        standard_deviation
+    )
+    VALUES (?, ?, ?, ?, ?)
+`);
+
+const getExams = db.prepare(`
+    SELECT
+        id,
+        subject_name AS subjectName,
+        my_score AS myScore,
+        max_score AS maxScore,
+        average,
+        standard_deviation AS standardDeviation
+    FROM exams
+    ORDER BY id
+`);
+
+app.use(express.json());
 
 app.get("/", (req, res) => {
     res.send("성적 관리 서버가 실행 중입니다!");
@@ -16,14 +52,12 @@ app.get("/", (req, res) => {
 app.post("/api/exams", (req, res) => {
     const { subjectName, myScore, maxScore, average, standardDeviation } = req.body;
 
-    // 과목명 확인
     if (typeof subjectName !== "string" || subjectName.trim() === "") {
         return res.status(400).json({
             message: "과목명을 입력해 주세요."
         });
     }
 
-    // 숫자가 올바르게 들어왔는지 확인
     if (
         !Number.isFinite(myScore) ||
         !Number.isFinite(maxScore) ||
@@ -35,7 +69,6 @@ app.post("/api/exams", (req, res) => {
         });
     }
 
-    // 숫자의 범위 확인
     if (
         maxScore <= 0 ||
         myScore < 0 || myScore > maxScore ||
@@ -47,16 +80,24 @@ app.post("/api/exams", (req, res) => {
         });
     }
 
+    const cleanSubjectName = subjectName.trim();
+
+    const result = insertExam.run(
+        cleanSubjectName,
+        myScore,
+        maxScore,
+        average,
+        standardDeviation
+    );
+
     const exam = {
-        id: exams.length + 1,
-        subjectName: subjectName.trim(),
+        id: Number(result.lastInsertRowid),
+        subjectName: cleanSubjectName,
         myScore,
         maxScore,
         average,
         standardDeviation
     };
-
-    exams.push(exam);
 
     res.status(201).json({
         message: "성적이 저장되었습니다.",
@@ -66,7 +107,7 @@ app.post("/api/exams", (req, res) => {
 
 // 저장된 성적 목록 조회
 app.get("/api/exams", (req, res) => {
-    res.json(exams);
+    res.json(getExams.all());
 });
 
 app.listen(PORT, () => {
