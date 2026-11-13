@@ -1,16 +1,12 @@
-﻿{
-  "manifest_version": 3,
-  "name": "SeoulTech ASTRA 시간표 동기화 (해커톤)",
-  "version": "0.2.0",
-  "description": "사용자가 연 ASTRA 시간표를 로컬 성적 관리 프로그램으로 동기화합니다.",
-  "permissions": [ "tabs", "scripting" ],
-  "host_permissions": [ "https://eclass.seoultech.ac.kr/*", "http://localhost:3000/*" ],
-  "background": { "service_worker": "background.js" },
-  "content_scripts": [
-    {
-      "matches": [ "http://localhost:5173/*", "http://127.0.0.1:5173/*" ],
-      "js": [ "bridge.js" ],
-      "run_at": "document_idle"
-    }
-  ]
+{
+ "manifest_version": 3,
+ "name": "SeoulTech ASTRA 시간표 동기화 (해커톤)",
+ "version": "0.2.0",
+ "description": "사용자가 연 ASTRA 시간표를 로컬 성적 관리 프로그램으로 동기화합니다.",
+ "permissions": ["tabs", "scripting"],
+ "host_permissions": ["https://eclass.seoultech.ac.kr/*", "http://localhost:3000/*"],
+ "background": {"service_worker": "background.js"},
+ "content_scripts": [
+   {"matches": ["http://localhost:5173/*", "http://127.0.0.1:5173/*"], "js": ["bridge.js"], "run_at": "document_idle"}
+ ]
 }
