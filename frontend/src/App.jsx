@@ -1,11 +1,51 @@
+
 import React, { useState } from "react";
 import "./App.css";
+import { LoginScreen } from "./components/LoginScreen";
+import { SignupScreen } from "./components/SignupScreen";
+import { Dashboard } from "./components/Dashboard";
+import { Home } from "./components/Home";
+import { Weekly } from "./components/Weekly";
+import { Planner } from "./components/Planner";
+import { Grades } from "./components/Grades";
+import { Modals } from "./components/Modals";
+
+const WEEKDAYS = [
+  "일요일", "월요일", "화요일", "수요일",
+  "목요일", "금요일", "토요일"
+];
+
+const HOURS = [
+  "09:00", "09:30", "10:00", "10:30",
+  "11:00", "11:30", "12:00", "12:30",
+  "13:00", "13:30", "14:00"
+];
+
+const TIME_OPTIONS = [...HOURS, "14:30"];
+
+const EMPTY_CLASS_FORM = {
+  subject: "",
+  professor: "",
+  weekday: "월요일",
+  startTime: "09:00",
+  endTime: "10:30",
+  repeat: true,
+  date: "",
+};
+
+// 날짜를 YYYY-MM-DD로 변환
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 export function App() {
   const [currentView, setCurrentView] = useState("login");
   const [activeMenu, setActiveMenu] = useState("HOME");
 
-  // 로그인 & 회원가입 상태
+  // 로그인 및 회원가입
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [signupValues, setSignupValues] = useState({
@@ -17,41 +57,290 @@ export function App() {
   });
   const [message, setMessage] = useState("");
 
-  // ================= WEEKLY 시간표 상태 =================
+  // WEEKLY 시간표
   const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-  const hours = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00"];
+  const hours = HOURS;
+  const weekdaysKorean = WEEKDAYS;
+
   const [scheduleItems, setScheduleItems] = useState([
-    { id: 1, day: 1, start: 4, duration: 3, title: "자료 구조 과제", room: "AI 추천", type: "purple" },
-    { id: 2, day: 2, start: 2, duration: 3, title: "미분적분학", room: "홍길동", type: "green" },
-    { id: 3, day: 3, start: 4, duration: 4, title: "불가능 시간", room: "알바", type: "gray" },
-    { id: 4, day: 5, start: 2, duration: 3, title: "미분적분학", room: "홍길동", type: "green" },
+    {
+      id: 1,
+      day: 1,
+      start: 4,
+      duration: 3,
+      title: "자료 구조 과제",
+      room: "AI 추천",
+      type: "purple",
+      repeat: true,
+    },
+    {
+      id: 2,
+      day: 2,
+      start: 2,
+      duration: 3,
+      title: "미분적분학",
+      room: "홍길동",
+      type: "green",
+      repeat: true,
+    },
+    {
+      id: 3,
+      day: 3,
+      start: 4,
+      duration: 4,
+      title: "불가능 시간",
+      room: "알바",
+      type: "gray",
+      repeat: true,
+    },
+    {
+      id: 4,
+      day: 5,
+      start: 2,
+      duration: 3,
+      title: "미분적분학",
+      room: "홍길동",
+      type: "green",
+      repeat: true,
+    },
   ]);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [modalType, setModalType] = useState("class");
   const [selectedSchedule, setSelectedSchedule] = useState(null);
-  const weekdaysKorean = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+
+  // 수정 중인 일정 ID
+  const [editingScheduleId, setEditingScheduleId] = useState(null);
+
+  // 겹침 등 오류 메시지
+  const [scheduleError, setScheduleError] = useState("");
+
   const [classForm, setClassForm] = useState({
-    subject: "",
-    professor: "",
-    weekday: "월요일",
-    startTime: "09:00",
-    endTime: "10:30",
+    ...EMPTY_CLASS_FORM,
   });
 
-  // ================= PLANNER 상태 및 동적 달력 계산 =================
+  // 새 일정 추가 창 열기
+  const openAddSchedule = (type) => {
+    setModalType(type);
+    setEditingScheduleId(null);
+    setSelectedSchedule(null);
+    setScheduleError("");
+    setClassForm({
+      ...EMPTY_CLASS_FORM,
+      date: formatDate(new Date()),
+    });
+    setShowAddModal(true);
+  };
+
+  // 기존 일정 수정 창 열기
+  const openEditSchedule = (item) => {
+    const isUnavailable = item.type === "gray";
+    const startTime = HOURS[item.start] || "09:00";
+    const endTime =
+      TIME_OPTIONS[item.start + item.duration] || "14:30";
+
+    setModalType(isUnavailable ? "unavailable" : "class");
+    setEditingScheduleId(item.id);
+    setSelectedSchedule(null);
+    setScheduleError("");
+
+    setClassForm({
+      subject: item.title,
+      professor: item.room || "",
+      weekday: WEEKDAYS[item.day] || "월요일",
+      startTime,
+      endTime,
+      repeat: item.repeat !== false,
+      date: item.date || formatDate(new Date()),
+    });
+
+    setShowAddModal(true);
+  };
+
+  // 추가/수정 창 닫기
+  const closeScheduleModal = () => {
+    setShowAddModal(false);
+    setEditingScheduleId(null);
+    setScheduleError("");
+  };
+
+  // 일정 삭제
+  const deleteSchedule = (id) => {
+    setScheduleItems((prev) =>
+      prev.filter((item) => item.id !== id)
+    );
+    setSelectedSchedule(null);
+  };
+
+  // 수업 및 불가능 시간 저장
+  const handleClassSubmit = (e) => {
+    e.preventDefault();
+    setScheduleError("");
+
+    if (!classForm.subject.trim()) {
+      setScheduleError("일정 이름을 입력해 주세요.");
+      return;
+    }
+
+    const startIdx = TIME_OPTIONS.indexOf(classForm.startTime);
+    const endIdx = TIME_OPTIONS.indexOf(classForm.endTime);
+
+    if (startIdx < 0 || endIdx < 0 || endIdx <= startIdx) {
+      setScheduleError("종료시간은 시작시간보다 늦어야 합니다.");
+      return;
+    }
+
+    if (startIdx >= HOURS.length) {
+      setScheduleError("선택할 수 없는 시작시간입니다.");
+      return;
+    }
+
+    const isUnavailable = modalType === "unavailable";
+    const repeat = isUnavailable ? classForm.repeat : true;
+
+    let day = WEEKDAYS.indexOf(classForm.weekday);
+    let date = null;
+
+    // 반복하지 않는 불가능 시간은 특정 날짜에만 적용
+    if (isUnavailable && !repeat) {
+      if (!classForm.date) {
+        setScheduleError("일회성 일정의 날짜를 선택해 주세요.");
+        return;
+      }
+
+      date = classForm.date;
+
+      const parsedDate = new Date(`${date}T12:00:00`);
+
+      if (Number.isNaN(parsedDate.getTime()) ||
+          formatDate(parsedDate) !== date) {
+        setScheduleError("올바른 날짜를 선택해 주세요.");
+        return;
+      }
+
+      day = parsedDate.getDay();
+    }
+
+    if (day < 0) {
+      setScheduleError("요일을 선택해 주세요.");
+      return;
+    }
+
+    // 기존 일정과 시간이 겹치는지 확인
+    const conflictingItem = scheduleItems.find((item) => {
+      // 수정하는 자기 자신은 제외
+      if (item.id === editingScheduleId) {
+        return false;
+      }
+
+      if (item.day !== day) {
+        return false;
+      }
+
+      const itemStart = item.start;
+      const itemEnd = item.start + item.duration;
+
+      // [시작, 종료) 구간이 실제로 겹치는 경우
+      const timeOverlaps =
+        startIdx < itemEnd && itemStart < endIdx;
+
+      if (!timeOverlaps) return false;
+
+      const itemRepeats = item.repeat !== false;
+
+      // 둘 다 일회성이라면 날짜까지 같아야 충돌
+      if (!repeat && !itemRepeats) {
+        return date === item.date;
+      }
+
+      // 반복 일정이 하나라도 있다면 같은 요일에 충돌
+      return true;
+    });
+
+    if (conflictingItem) {
+      const conflictStart =
+        TIME_OPTIONS[conflictingItem.start] || "";
+
+      const conflictEnd =
+        TIME_OPTIONS[
+          conflictingItem.start + conflictingItem.duration
+        ] || "";
+
+      setScheduleError(
+        `"${conflictingItem.title}" 일정과 시간이 겹칩니다. ` +
+        `(${conflictStart}~${conflictEnd})`
+      );
+      return;
+    }
+
+    const newData = {
+      day,
+      start: startIdx,
+      duration: endIdx - startIdx,
+      title: classForm.subject.trim(),
+      room: isUnavailable
+        ? ""
+        : classForm.professor.trim(),
+      type: isUnavailable ? "gray" : "green",
+      repeat,
+      date,
+    };
+
+    if (editingScheduleId !== null) {
+      // 기존 데이터 수정
+      setScheduleItems((prev) =>
+        prev.map((item) =>
+          item.id === editingScheduleId
+            ? {
+                ...item,
+                ...newData,
+              }
+            : item
+        )
+      );
+    } else {
+      // 새 데이터 추가
+      setScheduleItems((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          ...newData,
+        },
+      ]);
+    }
+
+    closeScheduleModal();
+  };
+
+  // PLANNER 달력
   const [selectedDate, setSelectedDate] = useState(12);
   const [currentMonth, setCurrentMonth] = useState(11);
   const [currentYear, setCurrentYear] = useState(2026);
 
-  const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1).getDay();
-  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-  const totalSlots = firstDayOfMonth + daysInMonth > 35 ? 42 : 35;
+  const firstDayOfMonth = new Date(
+    currentYear,
+    currentMonth - 1,
+    1
+  ).getDay();
 
-  const calendarDays = Array.from({ length: totalSlots }, (_, idx) => {
-    const dayNum = idx - firstDayOfMonth + 1;
-    return dayNum > 0 && dayNum <= daysInMonth ? dayNum : null;
-  });
+  const daysInMonth = new Date(
+    currentYear,
+    currentMonth,
+    0
+  ).getDate();
+
+  const totalSlots =
+    firstDayOfMonth + daysInMonth > 35 ? 42 : 35;
+
+  const calendarDays = Array.from(
+    { length: totalSlots },
+    (_, idx) => {
+      const dayNum = idx - firstDayOfMonth + 1;
+      return dayNum > 0 && dayNum <= daysInMonth
+        ? dayNum
+        : null;
+    }
+  );
 
   const handlePrevMonth = () => {
     if (currentMonth === 1) {
@@ -73,49 +362,117 @@ export function App() {
     setSelectedDate(1);
   };
 
-  const todaySchedules = [
-    { time: "09:00", title: "자료구조" },
-    { time: "14:00", title: "미분적분학(2)" },
-    { time: "16:00", title: "창의적 사고" },
-    { time: "19:00", title: "알바" },
-  ];
-
   const [ddayList, setDdayList] = useState([
-    { id: 1, title: "자료구조 연결리스트 구현", dueDate: "2026-11-15", dday: "D-3" },
-    { id: 2, title: "미분적분학 연습문제 풀이", dueDate: "2026-11-19", dday: "D-7" },
-    { id: 3, title: "창의적 사고 팀 발표 PPT", dueDate: "2026-11-24", dday: "D-12" },
+    {
+      id: 1,
+      title: "자료구조 연결리스트 구현",
+      dueDate: "2026-11-15",
+      dday: "D-3",
+    },
+    {
+      id: 2,
+      title: "미분적분학 연습문제 풀이",
+      dueDate: "2026-11-19",
+      dday: "D-7",
+    },
+    {
+      id: 3,
+      title: "창의적 사고 팀 발표 PPT",
+      dueDate: "2026-11-24",
+      dday: "D-12",
+    },
   ]);
 
+  // 선택 날짜의 요일별 수업과 마감 과제
+  const selectedFullDate = new Date(
+    currentYear,
+    currentMonth - 1,
+    selectedDate
+  );
+
+  const selectedWeekday = selectedFullDate.getDay();
+  const selectedDateString = formatDate(selectedFullDate);
+
+  const weeklySchedules = scheduleItems
+    .filter((item) => {
+      if (item.day !== selectedWeekday) return false;
+
+      return item.repeat !== false ||
+        item.date === selectedDateString;
+    })
+    .map((item) => ({
+      id: `schedule-${item.id}`,
+      time: HOURS[item.start] || "시간 미정",
+      title: item.title,
+    }))
+    .sort((a, b) => a.time.localeCompare(b.time));
+
+  const selectedDayTasks = ddayList
+    .filter((task) => task.dueDate === selectedDateString)
+    .map((task) => ({
+      id: `task-${task.id}`,
+      time: "마감",
+      title: task.title,
+    }));
+
+  const selectedDaySchedules = [
+    ...weeklySchedules,
+    ...selectedDayTasks,
+  ];
+
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [taskForm, setTaskForm] = useState({ title: "", date: "2026-11-16" });
+  const [taskForm, setTaskForm] = useState({
+    title: "",
+    date: "2026-11-16",
+  });
 
   const handleAddTask = (e) => {
     e.preventDefault();
-    if (!taskForm.title) return;
-    const targetDate = new Date(taskForm.date);
-    const baseDate = new Date(2026, 10, 12);
-    const diff = Math.round((targetDate - baseDate) / (1000 * 60 * 60 * 24));
-    const ddayText = diff === 0 ? "D-Day" : diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`;
+    if (!taskForm.title.trim() || !taskForm.date) return;
 
-    setDdayList([
-      ...ddayList,
-      { id: Date.now(), title: taskForm.title, dueDate: taskForm.date, dday: ddayText },
+    const targetDate = new Date(`${taskForm.date}T12:00:00`);
+    const baseDate = new Date(2026, 10, 12, 12);
+
+    const diff = Math.round(
+      (targetDate - baseDate) / (1000 * 60 * 60 * 24)
+    );
+
+    const ddayText =
+      diff === 0
+        ? "D-Day"
+        : diff > 0
+        ? `D-${diff}`
+        : `D+${Math.abs(diff)}`;
+
+    setDdayList((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        title: taskForm.title.trim(),
+        dueDate: taskForm.date,
+        dday: ddayText,
+      },
     ]);
-    setTaskForm({ title: "", date: "2026-11-16" });
+
+    setTaskForm({
+      title: "",
+      date: "2026-11-16",
+    });
+
     setShowTaskModal(false);
   };
 
-  // ================= GRADES (성적 관리) 상태 및 자동 계산 =================
+  // GRADES
   const gradeToPoint = {
     "A+": 4.5,
-    "A0": 4.0,
+    A0: 4.0,
     "B+": 3.5,
-    "B0": 3.0,
+    B0: 3.0,
     "C+": 2.5,
-    "C0": 2.0,
+    C0: 2.0,
     "D+": 1.5,
-    "D0": 1.0,
-    "F": 0.0,
+    D0: 1.0,
+    F: 0.0,
   };
 
   const [gradesList, setGradesList] = useState([
@@ -126,9 +483,12 @@ export function App() {
     { id: 5, semester: "2026 2학기", subject: "프로그래밍 입문 (2)", credit: 3, grade: "A+" },
   ]);
 
-  const [selectedSemester, setSelectedSemester] = useState("2026 2학기");
+  const [selectedSemester, setSelectedSemester] =
+    useState("2026 2학기");
+
   const [showGradeModal, setShowGradeModal] = useState(false);
   const [editingGradeId, setEditingGradeId] = useState(null);
+
   const [gradeForm, setGradeForm] = useState({
     semester: "2026 2학기",
     subject: "",
@@ -136,40 +496,95 @@ export function App() {
     grade: "A+",
   });
 
-  // 전체 누적 평점 & 취득 학점 계산
-  const totalCredits = gradesList.reduce((acc, item) => acc + Number(item.credit), 0);
+  const totalCredits = gradesList.reduce(
+    (acc, item) => acc + Number(item.credit),
+    0
+  );
+
   const totalWeightedPoints = gradesList.reduce(
-    (acc, item) => acc + Number(item.credit) * (gradeToPoint[item.grade] || 0),
+    (acc, item) =>
+      acc +
+      Number(item.credit) *
+        (gradeToPoint[item.grade] || 0),
     0
   );
-  const cumulativeGPA = totalCredits > 0 ? (totalWeightedPoints / totalCredits).toFixed(2) : "0.00";
 
-  // 선택 학기 평점 & 취득 학점 계산
-  const semesterGrades = gradesList.filter((item) => item.semester === selectedSemester);
-  const semesterCredits = semesterGrades.reduce((acc, item) => acc + Number(item.credit), 0);
+  const cumulativeGPA =
+    totalCredits > 0
+      ? (totalWeightedPoints / totalCredits).toFixed(2)
+      : "0.00";
+
+  const semesterGrades = gradesList.filter(
+    (item) => item.semester === selectedSemester
+  );
+
+  const semesterCredits = semesterGrades.reduce(
+    (acc, item) => acc + Number(item.credit),
+    0
+  );
+
   const semesterWeightedPoints = semesterGrades.reduce(
-    (acc, item) => acc + Number(item.credit) * (gradeToPoint[item.grade] || 0),
+    (acc, item) =>
+      acc +
+      Number(item.credit) *
+        (gradeToPoint[item.grade] || 0),
     0
   );
-  const semesterGPA = semesterCredits > 0 ? (semesterWeightedPoints / semesterCredits).toFixed(2) : "0.00";
 
-  // 학기별 GPA 차트 데이터 자동 생성
-  const semesters = ["2025 1학기", "2025 2학기", "2026 1학기", "2026 2학기"];
+  const semesterGPA =
+    semesterCredits > 0
+      ? (semesterWeightedPoints / semesterCredits).toFixed(2)
+      : "0.00";
+
+  const semesters = [
+    "2025 1학기",
+    "2025 2학기",
+    "2026 1학기",
+    "2026 2학기",
+  ];
+
   const chartData = semesters.map((sem) => {
-    if (sem === "2025 1학기") return { semester: sem, gpa: 3.75 };
-    if (sem === "2025 2학기") return { semester: sem, gpa: 3.92 };
-    const list = gradesList.filter((g) => g.semester === sem);
-    const creds = list.reduce((a, b) => a + Number(b.credit), 0);
-    const pts = list.reduce((a, b) => a + Number(b.credit) * (gradeToPoint[b.grade] || 0), 0);
+    if (sem === "2025 1학기") {
+      return { semester: sem, gpa: 3.75 };
+    }
+
+    if (sem === "2025 2학기") {
+      return { semester: sem, gpa: 3.92 };
+    }
+
+    const list = gradesList.filter(
+      (item) => item.semester === sem
+    );
+
+    const creds = list.reduce(
+      (sum, item) => sum + Number(item.credit),
+      0
+    );
+
+    const pts = list.reduce(
+      (sum, item) =>
+        sum +
+        Number(item.credit) *
+          (gradeToPoint[item.grade] || 0),
+      0
+    );
+
     return {
       semester: sem,
-      gpa: creds > 0 ? Number((pts / creds).toFixed(2)) : 0,
+      gpa: creds > 0
+        ? Number((pts / creds).toFixed(2))
+        : 0,
     };
   });
 
   const openAddGradeModal = () => {
     setEditingGradeId(null);
-    setGradeForm({ semester: selectedSemester, subject: "", credit: 3, grade: "A+" });
+    setGradeForm({
+      semester: selectedSemester,
+      subject: "",
+      credit: 3,
+      grade: "A+",
+    });
     setShowGradeModal(true);
   };
 
@@ -186,29 +601,41 @@ export function App() {
 
   const handleGradeSubmit = (e) => {
     e.preventDefault();
-    if (!gradeForm.subject) return;
+    if (!gradeForm.subject.trim()) return;
 
     if (editingGradeId !== null) {
-      setGradesList(
-        gradesList.map((item) =>
-          item.id === editingGradeId ? { ...gradeForm, id: editingGradeId, credit: Number(gradeForm.credit) } : item
+      setGradesList((prev) =>
+        prev.map((item) =>
+          item.id === editingGradeId
+            ? {
+                ...gradeForm,
+                id: editingGradeId,
+                credit: Number(gradeForm.credit),
+              }
+            : item
         )
       );
     } else {
-      setGradesList([
-        ...gradesList,
-        { ...gradeForm, id: Date.now(), credit: Number(gradeForm.credit) },
+      setGradesList((prev) => [
+        ...prev,
+        {
+          ...gradeForm,
+          id: Date.now(),
+          credit: Number(gradeForm.credit),
+        },
       ]);
     }
+
     setShowGradeModal(false);
     setEditingGradeId(null);
   };
 
   const handleDeleteGrade = (id) => {
-    setGradesList(gradesList.filter((item) => item.id !== id));
+    setGradesList((prev) =>
+      prev.filter((item) => item.id !== id)
+    );
   };
 
-  // 공통 데이터
   const departments = [
     { value: "", label: "학과" },
     { value: "computer-science", label: "컴퓨터공학과" },
@@ -217,19 +644,12 @@ export function App() {
     { value: "mechanical-engineering", label: "기계공학과" },
   ];
 
-  const todaysClasses = [
-    { title: "컴퓨터프로그래밍", details: "09:00–10:30  ·  홍길동 교수님" },
-    { title: "미적분학", details: "11:00–12:30  ·  김민수 교수님" },
-    { title: "대학영어", details: "14:00–15:30  ·  이수진 교수님" },
-  ];
-
+  // 기존 HOME 마감 임박 과제 데이터
   const upcomingAssignments = [
-    { title: "알고리즘 과제", details: "09:00–10:30  ·  홍길동 교수님" },
-    { title: "미적분학", details: "11:00–12:30  ·  김민수 교수님" },
-    { title: "대학영어", details: "14:00–15:30  ·  이수진 교수님" },
+    { title: "알고리즘 과제", details: "09:00–10:30 · 홍길동 교수님" },
+    { title: "미적분학", details: "11:00–12:30 · 김민수 교수님" },
+    { title: "대학영어", details: "14:00–15:30 · 이수진 교수님" },
   ];
-
-  const navItems = ["HOME", "WEEKLY", "PLANNER", "GRADES"];
 
   const handleLoginSubmit = (e) => {
     e.preventDefault();
@@ -239,6 +659,7 @@ export function App() {
 
   const handleSignupSubmit = (e) => {
     e.preventDefault();
+
     if (
       !signupValues.email ||
       !signupValues.name ||
@@ -249,746 +670,140 @@ export function App() {
       setMessage("모든 항목을 입력해 주세요.");
       return;
     }
+
     setMessage("회원가입 완료! 로그인 창으로 이동합니다.");
+
     setTimeout(() => {
       setCurrentView("login");
       setMessage("");
     }, 1000);
   };
 
-  const handleClassSubmit = (e) => {
-    e.preventDefault();
-    if (!classForm.subject) return;
-
-    const dayIdx = weekdaysKorean.indexOf(classForm.weekday);
-    const targetDay = dayIdx !== -1 ? dayIdx : 1;
-    let startIdx = hours.indexOf(classForm.startTime);
-    if (startIdx === -1) startIdx = 0;
-
-    let duration = 3;
-    const endIdx = hours.indexOf(classForm.endTime);
-    if (endIdx > startIdx) duration = endIdx - startIdx;
-
-    setScheduleItems([
-      ...scheduleItems,
-      {
-        id: Date.now(),
-        day: targetDay,
-        start: startIdx,
-        duration: duration > 0 ? duration : 3,
-        title: classForm.subject,
-        room: classForm.professor || (modalType === "class" ? "교수님" : "개인일정"),
-        type: modalType === "class" ? "green" : "gray",
-      },
-    ]);
-    setShowAddModal(false);
-    setClassForm({ subject: "", professor: "", weekday: "월요일", startTime: "09:00", endTime: "10:30" });
-  };
-
   return (
     <main className="anima-main">
-      {/* 1. 로그인 화면 */}
-      {currentView === "login" && (
-        <section className="anima-card" aria-labelledby="login-title">
-          <h1 id="login-title" className="anima-title">학점 관리</h1>
-          <form className="anima-form" onSubmit={handleLoginSubmit} noValidate>
-            <label className="anima-label-email">이메일</label>
-            <input
-              type="email"
-              value={loginEmail}
-              onChange={(e) => setLoginEmail(e.target.value)}
-              required
-              className="anima-input-email"
-            />
-            <label className="anima-label-password">비밀번호</label>
-            <input
-              type="password"
-              value={loginPassword}
-              onChange={(e) => setLoginPassword(e.target.value)}
-              required
-              className="anima-input-password"
-            />
-            <button type="submit" className="anima-submit-btn">로그인</button>
-          </form>
-          <p className="anima-footer-text">아직 계정이 없으신가요?</p>
-          <button
-            type="button"
-            className="anima-link-btn"
-            style={{ position: "absolute", top: "487px", left: "290px" }}
-            onClick={() => setCurrentView("signup")}
-          >
-            회원가입
-          </button>
-        </section>
-      )}
+      <LoginScreen
+        {...{
+          currentView,
+          setCurrentView,
+          loginEmail,
+          setLoginEmail,
+          loginPassword,
+          setLoginPassword,
+          handleLoginSubmit,
+        }}
+      />
 
-      {/* 2. 회원가입 화면 */}
-      {currentView === "signup" && (
-        <section className="anima-signup-card" aria-labelledby="signup-title">
-          <h1 id="signup-title" className="anima-signup-title">회원가입</h1>
-          <form className="anima-form" onSubmit={handleSignupSubmit} noValidate>
-            <div className="signup-input-wrap top-129">
-              <input
-                type="email"
-                value={signupValues.email}
-                onChange={(e) => setSignupValues({ ...signupValues, email: e.target.value })}
-                placeholder="이메일(ID)"
-                className="signup-input"
-              />
-            </div>
-            <div className="signup-input-wrap top-236">
-              <input
-                type="text"
-                value={signupValues.name}
-                onChange={(e) => setSignupValues({ ...signupValues, name: e.target.value })}
-                placeholder="사용자 이름"
-                className="signup-input"
-              />
-            </div>
-            <div className="signup-input-wrap top-347">
-              <input
-                type="password"
-                value={signupValues.password}
-                onChange={(e) => setSignupValues({ ...signupValues, password: e.target.value })}
-                placeholder="비밀번호"
-                className="signup-input"
-              />
-            </div>
-            <div className="signup-half-wrap top-460 left-368">
-              <input
-                type="text"
-                value={signupValues.studentId}
-                onChange={(e) => setSignupValues({ ...signupValues, studentId: e.target.value })}
-                placeholder="학번"
-                className="signup-input"
-              />
-            </div>
-            <div className="signup-half-wrap top-456 left-615">
-              <select
-                value={signupValues.department}
-                onChange={(e) => setSignupValues({ ...signupValues, department: e.target.value })}
-                className="signup-input signup-select"
-              >
-                {departments.map((dept) => (
-                  <option key={dept.value} value={dept.value}>{dept.label}</option>
-                ))}
-              </select>
-            </div>
-            <button type="submit" className="signup-submit-btn">회원가입</button>
-            {message && <p className="signup-message">{message}</p>}
-          </form>
-          <footer className="signup-footer">
-            <span>이미 계정이 있으신가요?</span>
-            <button type="button" className="anima-link-btn" onClick={() => setCurrentView("login")}>
-              로그인
-            </button>
-          </footer>
-        </section>
-      )}
+      <SignupScreen
+        {...{
+          currentView,
+          setCurrentView,
+          signupValues,
+          setSignupValues,
+          handleSignupSubmit,
+          departments,
+          message,
+        }}
+      />
 
-      {/* 3. 대시보드 화면 */}
-      {currentView === "dashboard" && (
-        <div className="home-wrapper">
-          {/* 좌측 사이드바 */}
-          <aside className="home-sidebar">
-            <h1 className="sidebar-logo">MENU</h1>
-            <nav className="sidebar-nav">
-              {navItems.map((item) => {
-                const isActive = activeMenu === item;
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => setActiveMenu(item)}
-                    className={`sidebar-nav-btn ${isActive ? "active" : ""}`}
-                  >
-                    {isActive && <span className="active-indicator" />}
-                    {item}
-                  </button>
-                );
-              })}
-            </nav>
-            <button
-              type="button"
-              className="sidebar-logout-btn"
-              onClick={() => setCurrentView("login")}
-            >
-              로그아웃
-            </button>
-          </aside>
+      <Dashboard
+        {...{
+          currentView,
+          activeMenu,
+          setActiveMenu,
+          setCurrentView,
+        }}
+      >
+        <Home
+          {...{
+            activeMenu,
+            setActiveMenu,
+            cumulativeGPA,
+            totalCredits,
+            scheduleItems,
+            hours,
+            upcomingAssignments,
+          }}
+        />
 
-          {/* 우측 메인 콘텐츠 */}
-          <div className="home-content">
-            {/* 3-1. HOME 탭 */}
-            {activeMenu === "HOME" && (
-              <>
-                <header className="home-header">
-                  <h1>안녕하세요!<br />오늘의 학습 현황입니다.</h1>
-                </header>
+        <Weekly
+          {...{
+            activeMenu,
+            days,
+            hours,
+            scheduleItems,
+            setSelectedSchedule,
+            openAddSchedule,
+          }}
+        />
 
-                <div className="home-stats-row">
-                  <div className="stat-box">
-                    <h2>예상 학점</h2>
-                    <p className="stat-value">{cumulativeGPA} / 4.5</p>
-                  </div>
-                  <div className="stat-box">
-                    <h2>석차</h2>
-                    <p className="stat-value">3 / 42명</p>
-                  </div>
-                  <div className="stat-box">
-                    <h2>이수학점</h2>
-                    <p className="stat-value">{totalCredits} 학점</p>
-                  </div>
-                </div>
+        <Planner
+          {...{
+            activeMenu,
+            currentYear,
+            currentMonth,
+            handlePrevMonth,
+            handleNextMonth,
+            calendarDays,
+            ddayList,
+            selectedDate,
+            setSelectedDate,
+            selectedDaySchedules,
+            todaySchedules: selectedDaySchedules,
+            setDdayList,
+            setShowTaskModal,
+          }}
+        />
 
-                <div className="home-widgets-row">
-                  <section className="widget-box">
-                    <div className="widget-header">
-                      <div>
-                        <h2>오늘 수업</h2>
-                        <p className="widget-sub">메모와 할 일을 확인하세요.</p>
-                      </div>
-                      <button type="button" className="widget-pill-btn" onClick={() => setActiveMenu("WEEKLY")}>
-                        수업 시간표
-                      </button>
-                    </div>
-                    <div className="widget-list">
-                      {todaysClasses.map((cls) => (
-                        <button key={cls.title} type="button" className="item-card" onClick={() => setActiveMenu("WEEKLY")}>
-                          <div className="item-card-info">
-                            <span className="item-title">{cls.title}</span>
-                            <span className="item-details">{cls.details}</span>
-                          </div>
-                          <span className="item-arrow">›</span>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
+        <Grades
+          {...{
+            activeMenu,
+            openAddGradeModal,
+            cumulativeGPA,
+            totalCredits,
+            selectedSemester,
+            setSelectedSemester,
+            semesterGPA,
+            semesterCredits,
+            chartData,
+            gradesList,
+            gradeToPoint,
+            openEditGradeModal,
+            handleDeleteGrade,
+          }}
+        />
+      </Dashboard>
 
-                  <section className="widget-box">
-                    <div className="widget-header">
-                      <div>
-                        <h2>오늘의 할 일</h2>
-                        <p className="widget-sub">체크리스트를 관리하세요.</p>
-                      </div>
-                      <button type="button" className="widget-pill-btn" onClick={() => setActiveMenu("PLANNER")}>
-                        플래너 열기
-                      </button>
-                    </div>
-                    <div className="widget-list">
-                      <label className="todo-item"><input type="checkbox" /><span>컴퓨터프로그래밍 실습 복습</span></label>
-                      <label className="todo-item"><input type="checkbox" /><span>미적분학 연습문제 3장 풀기</span></label>
-                      <label className="todo-item"><input type="checkbox" /><span>대학영어 발표 자료 준비</span></label>
-                    </div>
-                  </section>
-
-                  <section className="widget-box">
-                    <div className="widget-header">
-                      <div>
-                        <h2>마감 임박 과제</h2>
-                        <p className="widget-sub">메모와 할 일을 확인하세요.</p>
-                      </div>
-                    </div>
-                    <div className="widget-list">
-                      {upcomingAssignments.map((item, idx) => (
-                        <div key={idx} className="item-card">
-                          <div className="item-card-info">
-                            <span className="item-title">{item.title}</span>
-                            <span className="item-details">{item.details}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                </div>
-              </>
-            )}
-
-            {/* 3-2. WEEKLY 탭 */}
-            {activeMenu === "WEEKLY" && (
-              <div className="weekly-container">
-                <div className="weekly-header">
-                  <h1>주간 시간표</h1>
-                  <div className="weekly-btn-group">
-                    <button
-                      type="button"
-                      className="weekly-action-btn"
-                      onClick={() => { setModalType("unavailable"); setShowAddModal(true); }}
-                    >
-                      + 불가능 시간
-                    </button>
-                    <button
-                      type="button"
-                      className="weekly-action-btn primary"
-                      onClick={() => { setModalType("class"); setShowAddModal(true); }}
-                    >
-                      + 수업 추가
-                    </button>
-                  </div>
-                </div>
-
-                <div className="figma-timetable-wrapper">
-                  <div className="figma-header-row">
-                    <div className="figma-time-title">TIME</div>
-                    {days.map((day, idx) => (
-                      <div key={day} className={`figma-day-pill ${idx === 0 ? "sun" : ""}`}>{day}</div>
-                    ))}
-                  </div>
-
-                  <div className="figma-body-row">
-                    <div className="figma-time-col">
-                      {hours.map((time) => (
-                        <div key={time} className="figma-time-cell">{time}</div>
-                      ))}
-                    </div>
-
-                    <div className="figma-grid-area">
-                      {hours.map((_, rIdx) => (
-                        <div key={rIdx} className="figma-grid-row">
-                          {days.map((_, cIdx) => (
-                            <div key={cIdx} className="figma-grid-box" />
-                          ))}
-                        </div>
-                      ))}
-
-                      {scheduleItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className={`figma-card ${item.type}`}
-                          style={{
-                            left: `calc(14.28% * ${item.day} + 4px)`,
-                            top: `${item.start * 40}px`,
-                            height: `${item.duration * 40}px`,
-                          }}
-                          onClick={() => setSelectedSchedule(item)}
-                        >
-                          <span className="card-main">{item.title}</span>
-                          <span className="card-sub">{item.room}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 3-3. PLANNER 탭 */}
-            {activeMenu === "PLANNER" && (
-              <div className="planner-container">
-                <div className="planner-top-bar">
-                  <h1>학습 계획</h1>
-                  <button
-                    type="button"
-                    className="planner-add-btn"
-                    onClick={() => setShowTaskModal(true)}
-                  >
-                    [+] 과제 추가
-                  </button>
-                </div>
-
-                <div className="planner-board">
-                  <div className="planner-calendar-card">
-                    <div className="calendar-nav">
-                      <button type="button" onClick={handlePrevMonth}>&lt;</button>
-                      <span>{currentYear}년 {currentMonth}월</span>
-                      <button type="button" onClick={handleNextMonth}>&gt;</button>
-                    </div>
-
-                    <div className="calendar-weekdays">
-                      <span className="sun">S</span>
-                      <span>M</span>
-                      <span>T</span>
-                      <span>W</span>
-                      <span>T</span>
-                      <span>F</span>
-                      <span className="sat">S</span>
-                    </div>
-
-                    <div className="calendar-days-grid">
-                      {calendarDays.map((day, idx) => {
-                        const dateStr = day
-                          ? `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-                          : "";
-                        const hasTask = day && ddayList.some((task) => task.dueDate === dateStr);
-
-                        return (
-                          <button
-                            key={idx}
-                            type="button"
-                            disabled={!day}
-                            onClick={() => day && setSelectedDate(day)}
-                            className={`calendar-day-cell ${!day ? "empty" : ""} ${
-                              day === selectedDate ? "selected" : ""
-                            } ${idx % 7 === 0 ? "sun-text" : idx % 7 === 6 ? "sat-text" : ""}`}
-                          >
-                            {day}
-                            {hasTask && <span className="calendar-dot" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="planner-right-col">
-                    <div className="planner-side-card today-box">
-                      <h2>오늘 일정 ({currentMonth}월 {selectedDate}일)</h2>
-                      <div className="today-schedule-list">
-                        {todaySchedules.map((item, idx) => (
-                          <div key={idx} className="today-schedule-pill">
-                            <span className="pill-time">{item.time}</span>
-                            <span className="pill-title">{item.title}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="planner-side-card dday-box">
-                      <h2>D-Day</h2>
-                      <div className="dday-list">
-                        {ddayList.map((task) => (
-                          <div key={task.id} className="dday-item-row">
-                            <span className="dday-badge">{task.dday}</span>
-                            <div className="dday-info">
-                              <span className="dday-title">{task.title}</span>
-                              <span className="dday-date">{task.dueDate} 마감</span>
-                            </div>
-                            <button
-                              type="button"
-                              className="dday-del-btn"
-                              onClick={() => setDdayList(ddayList.filter((t) => t.id !== task.id))}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 3-4. GRADES 탭 (성적 분석 및 목표 가이드) */}
-            {activeMenu === "GRADES" && (
-              <div className="grades-container">
-                <div className="grades-top-bar">
-                  <h1>성적 분석 및 목표 가이드</h1>
-                  <button
-                    type="button"
-                    className="grades-add-btn"
-                    onClick={openAddGradeModal}
-                  >
-                    [+] 성적 등록
-                  </button>
-                </div>
-
-                {/* 상단 요약 카드 2개 */}
-                <div className="grades-summary-row">
-                  {/* 좌측 카드: 전체 누적 */}
-                  <div className="grades-summary-card">
-                    <div className="summary-block">
-                      <span className="summary-label">전체 누적 평점 평균</span>
-                      <div className="summary-value-line">
-                        <strong className="summary-big-num">{cumulativeGPA}</strong>
-                        <span className="summary-unit">/ 4.5점</span>
-                      </div>
-                    </div>
-                    <div className="summary-divider" />
-                    <div className="summary-block">
-                      <span className="summary-label">총 취득 학점</span>
-                      <div className="summary-value-line">
-                        <strong className="summary-big-num">{totalCredits}</strong>
-                        <span className="summary-unit">학점</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 우측 카드: 선택 학기 */}
-                  <div className="grades-summary-card">
-                    <div className="summary-block">
-                      <div className="summary-label-row">
-                        <span className="summary-label">선택 학기 평점 평균</span>
-                        <select
-                          className="semester-mini-select"
-                          value={selectedSemester}
-                          onChange={(e) => setSelectedSemester(e.target.value)}
-                        >
-                          <option value="2026 1학기">2026 1학기</option>
-                          <option value="2026 2학기">2026 2학기</option>
-                        </select>
-                      </div>
-                      <div className="summary-value-line">
-                        <strong className="summary-big-num">{semesterGPA}</strong>
-                        <span className="summary-unit">/ 4.5점</span>
-                      </div>
-                    </div>
-                    <div className="summary-divider" />
-                    <div className="summary-block">
-                      <span className="summary-label">선택 학기 취득 학점</span>
-                      <div className="summary-value-line">
-                        <strong className="summary-big-num">{semesterCredits}</strong>
-                        <span className="summary-unit">학점</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 중단 차트 카드: 학기별 GPA 변화 */}
-                <div className="grades-chart-card">
-                  <h2>학기별 GPA 변화</h2>
-                  <div className="gpa-bar-chart">
-                    {chartData.map((d) => {
-                      const heightPercent = Math.min(100, Math.round((d.gpa / 4.5) * 100));
-                      return (
-                        <div key={d.semester} className="gpa-bar-col">
-                          <span className="gpa-bar-score">{d.gpa.toFixed(2)}</span>
-                          <div className="gpa-bar-track">
-                            <div
-                              className="gpa-bar-fill"
-                              style={{ height: `${heightPercent}%` }}
-                            />
-                          </div>
-                          <span className="gpa-bar-label">{d.semester}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 하단 테이블 카드: 성적 등록 과목 및 관리 */}
-                <div className="grades-table-card">
-                  <h2>성적 등록 과목 및 관리</h2>
-                  <div className="grades-table-header">
-                    <span className="col-sem">수강 학기</span>
-                    <span className="col-sub">과목명</span>
-                    <span className="col-cred">학점</span>
-                    <span className="col-grd">성적</span>
-                    <span className="col-pt">평점</span>
-                    <span className="col-act">관리</span>
-                  </div>
-                  <div className="grades-table-body">
-                    {gradesList.map((item) => (
-                      <div key={item.id} className="grades-table-row">
-                        <span className="col-sem">{item.semester}</span>
-                        <span className="col-sub">{item.subject}</span>
-                        <span className="col-cred">{item.credit}</span>
-                        <span className="col-grd">{item.grade}</span>
-                        <span className="col-pt">{(gradeToPoint[item.grade] || 0).toFixed(1)}</span>
-                        <span className="col-act">
-                          <button
-                            type="button"
-                            className="grade-row-btn edit"
-                            onClick={() => openEditGradeModal(item)}
-                          >
-                            [수정]
-                          </button>
-                          <button
-                            type="button"
-                            className="grade-row-btn del"
-                            onClick={() => handleDeleteGrade(item.id)}
-                          >
-                            [삭제]
-                          </button>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 일정 상세 확인 모달 */}
-      {selectedSchedule && (
-        <div className="modal-overlay" onClick={() => setSelectedSchedule(null)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <h2>{selectedSchedule.title}</h2>
-            <p style={{ color: "#555", margin: "10px 0" }}>
-              {days[selectedSchedule.day]}요일 · {selectedSchedule.room}
-            </p>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "20px" }}>
-              <button
-                type="button"
-                className="modal-cancel-btn"
-                style={{ backgroundColor: "#ef4444", color: "white", border: "none" }}
-                onClick={() => {
-                  setScheduleItems(scheduleItems.filter((i) => i.id !== selectedSchedule.id));
-                  setSelectedSchedule(null);
-                }}
-              >
-                삭제
-              </button>
-              <button type="button" className="modal-save-btn" onClick={() => setSelectedSchedule(null)}>
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 수업 추가 모달 */}
-      {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="figma-modal-card" onClick={(e) => e.stopPropagation()}>
-            <h1 className="figma-modal-title">
-              {modalType === "class" ? "수업 추가" : "불가능 시간 추가"}
-            </h1>
-            <form onSubmit={handleClassSubmit} className="figma-modal-form">
-              <div className="figma-input-container">
-                <input
-                  type="text"
-                  value={classForm.subject}
-                  onChange={(e) => setClassForm({ ...classForm, subject: e.target.value })}
-                  placeholder={modalType === "class" ? "과목명" : "일정명 (예: 알바)"}
-                  required
-                  className="figma-text-input"
-                />
-              </div>
-              <div className="figma-input-container">
-                <input
-                  type="text"
-                  value={classForm.professor}
-                  onChange={(e) => setClassForm({ ...classForm, professor: e.target.value })}
-                  placeholder={modalType === "class" ? "담당 교수" : "장소 또는 사유"}
-                  className="figma-text-input"
-                />
-              </div>
-              <div className="figma-row-inputs">
-                <div className="figma-small-box">
-                  <select
-                    value={classForm.weekday}
-                    onChange={(e) => setClassForm({ ...classForm, weekday: e.target.value })}
-                    className="figma-select-input"
-                  >
-                    {weekdaysKorean.map((day) => (
-                      <option key={day} value={day}>{day}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="figma-time-box">
-                  <select
-                    value={classForm.startTime}
-                    onChange={(e) => setClassForm({ ...classForm, startTime: e.target.value })}
-                    className="figma-select-time"
-                  >
-                    {hours.map((h) => (<option key={h} value={h}>{h}</option>))}
-                  </select>
-                  <span className="time-tilde">~</span>
-                  <select
-                    value={classForm.endTime}
-                    onChange={(e) => setClassForm({ ...classForm, endTime: e.target.value })}
-                    className="figma-select-time"
-                  >
-                    {hours.map((h) => (<option key={h} value={h}>{h}</option>))}
-                  </select>
-                </div>
-              </div>
-              <div className="figma-btn-row">
-                <button type="button" onClick={() => setShowAddModal(false)} className="figma-cancel-btn">취소</button>
-                <button type="submit" className="figma-submit-btn">[저장]</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* PLANNER [+] 과제 추가 모달 */}
-      {showTaskModal && (
-        <div className="modal-overlay" onClick={() => setShowTaskModal(false)}>
-          <div className="figma-modal-card" onClick={(e) => e.stopPropagation()}>
-            <h1 className="figma-modal-title">새 과제 추가</h1>
-            <form onSubmit={handleAddTask} className="figma-modal-form">
-              <div className="figma-input-container">
-                <input
-                  type="text"
-                  value={taskForm.title}
-                  onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
-                  placeholder="과제명을 입력하세요"
-                  required
-                  className="figma-text-input"
-                />
-              </div>
-              <div className="figma-input-container">
-                <input
-                  type="date"
-                  value={taskForm.date}
-                  onChange={(e) => setTaskForm({ ...taskForm, date: e.target.value })}
-                  required
-                  className="figma-text-input"
-                />
-              </div>
-              <div className="figma-btn-row">
-                <button type="button" onClick={() => setShowTaskModal(false)} className="figma-cancel-btn">취소</button>
-                <button type="submit" className="figma-submit-btn">[저장]</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* GRADES [+] 성적 등록 / 수정 모달 */}
-      {showGradeModal && (
-        <div className="modal-overlay" onClick={() => setShowGradeModal(false)}>
-          <div className="figma-modal-card" onClick={(e) => e.stopPropagation()}>
-            <h1 className="figma-modal-title">
-              {editingGradeId !== null ? "성적 수정" : "성적 등록"}
-            </h1>
-            <form onSubmit={handleGradeSubmit} className="figma-modal-form">
-              <div className="figma-input-container">
-                <select
-                  value={gradeForm.semester}
-                  onChange={(e) => setGradeForm({ ...gradeForm, semester: e.target.value })}
-                  className="figma-select-input"
-                >
-                  <option value="2026 1학기">2026 1학기</option>
-                  <option value="2026 2학기">2026 2학기</option>
-                </select>
-              </div>
-              <div className="figma-input-container">
-                <input
-                  type="text"
-                  value={gradeForm.subject}
-                  onChange={(e) => setGradeForm({ ...gradeForm, subject: e.target.value })}
-                  placeholder="과목명 (예: 운영체제)"
-                  required
-                  className="figma-text-input"
-                />
-              </div>
-              <div className="figma-row-inputs">
-                <div className="figma-small-box">
-                  <select
-                    value={gradeForm.credit}
-                    onChange={(e) => setGradeForm({ ...gradeForm, credit: e.target.value })}
-                    className="figma-select-input"
-                  >
-                    <option value={1}>1학점</option>
-                    <option value={2}>2학점</option>
-                    <option value={3}>3학점</option>
-                    <option value={4}>4학점</option>
-                  </select>
-                </div>
-                <div className="figma-small-box">
-                  <select
-                    value={gradeForm.grade}
-                    onChange={(e) => setGradeForm({ ...gradeForm, grade: e.target.value })}
-                    className="figma-select-input"
-                  >
-                    {Object.keys(gradeToPoint).map((g) => (
-                      <option key={g} value={g}>{g} ({gradeToPoint[g].toFixed(1)})</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="figma-btn-row">
-                <button type="button" onClick={() => setShowGradeModal(false)} className="figma-cancel-btn">취소</button>
-                <button type="submit" className="figma-submit-btn">[저장]</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <Modals
+        {...{
+          selectedSchedule,
+          setSelectedSchedule,
+          days,
+          hours,
+          weekdaysKorean,
+          showAddModal,
+          modalType,
+          editingScheduleId,
+          classForm,
+          setClassForm,
+          scheduleError,
+          handleClassSubmit,
+          openEditSchedule,
+          closeScheduleModal,
+          deleteSchedule,
+          showTaskModal,
+          setShowTaskModal,
+          handleAddTask,
+          taskForm,
+          setTaskForm,
+          showGradeModal,
+          setShowGradeModal,
+          editingGradeId,
+          handleGradeSubmit,
+          gradeForm,
+          setGradeForm,
+          gradeToPoint,
+        }}
+      />
     </main>
   );
 }
