@@ -424,8 +424,7 @@ export function Modals(props) {
                 : "수업 추가"}
             </h1>
 
-            <Validatedform
-              onSubmit={handleClassSubmit}
+            <form
               className="weekly-edit-form"
               validate={() =>
     validateSchedule(
@@ -433,6 +432,7 @@ export function Modals(props) {
       modalType === "unavailable"
     )
   }
+  onSubmit={handleClassSubmit}
             >
               {/* 수업명 또는 일정 이름 */}
               <input
@@ -573,7 +573,7 @@ export function Modals(props) {
                   저장
                 </button>
               </div>
-            </Validatedform>
+            </form>
           </div>
         </div>
       )}
@@ -592,10 +592,11 @@ export function Modals(props) {
               새 과제 추가
             </h1>
 
-            <Validatedform
-              onSubmit={handleAddTask}
+            <ValidatedForm
+            
               className="figma-modal-form"
               validate={() => validateTask(taskForm)}
+              onSubmit={handleAddTask}
             >
               <div className="figma-input-container">
                 <input
@@ -644,7 +645,7 @@ export function Modals(props) {
                   [저장]
                 </button>
               </div>
-            </Validatedform>
+            </ValidatedForm>
           </div>
         </div>
       )}
@@ -665,7 +666,7 @@ export function Modals(props) {
                 : "성적 등록"}
             </h1>
 
-            <Validatedform
+            <ValidatedForm
               onSubmit={handleGradeSubmit}
               className="figma-modal-form"
               validate={() =>
@@ -767,7 +768,7 @@ export function Modals(props) {
                   [저장]
                 </button>
               </div>
-            </Validatedform>
+            </ValidatedForm>
           </div>
         </div>
       )}
