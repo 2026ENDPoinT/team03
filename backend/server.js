@@ -1,11 +1,17 @@
 ﻿const express = require("express");
+const cors = require("cors");
 const coursesRouter = require("./routes/courses");
 const timetableRouter = require("./routes/timetable");
 const assignmentsRouter = require("./routes/assignments");
 
 const app = express();
 const PORT = 3000;
-
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:5176"
+  ]
+})); // 추가
 app.use(express.json());
 
 app.get("/", (req, res) => {
