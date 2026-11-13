@@ -1,5 +1,0 @@
-:root { font-family: Pretendard, 'Noto Sans KR', system-ui, sans-serif; color: #10213c; background: #f4f7fb; font-synthesis: none; }
-* { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; }
-button, input, select { font: inherit; }
-button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #a9c6ff; outline-offset: 2px; }
