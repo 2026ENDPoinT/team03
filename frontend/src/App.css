@@ -1,0 +1,7 @@
+/* 화면별 CSS를 불러오는 파일입니다. 기존 App.jsx의 import를 유지할 수 있습니다. */
+@import "./styles/common.css";
+@import "./styles/auth.css";
+@import "./styles/dashboard.css";
+@import "./styles/weekly.css";
+@import "./styles/planner.css";
+@import "./styles/grades.css";
