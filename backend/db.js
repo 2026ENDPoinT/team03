@@ -46,6 +46,13 @@ db.exec(`
         due_date TEXT NOT NULL,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS planner_settings (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    start_time TEXT NOT NULL DEFAULT '09:00',
+    end_time TEXT NOT NULL DEFAULT '23:00',
+    hide_outside_range INTEGER NOT NULL DEFAULT 1
+        CHECK (hide_outside_range IN (0, 1))
+    );
 `);
 
 module.exports = db;
