@@ -1,0 +1,6 @@
+.astra-sync-control { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.astra-sync-control .weekly-action-btn { white-space: nowrap; }
+.astra-sync-control .weekly-action-btn:disabled { opacity: .55; cursor: not-allowed; }
+.astra-sync-message { margin: 0; max-width: 250px; font-size: 12px; line-height: 1.4; color: #475569; }
+.astra-sync-message.success { color: #176534; }
+.astra-sync-message.error { color: #b91c1c; }

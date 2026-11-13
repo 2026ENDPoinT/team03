@@ -1,4 +1,5 @@
-
+import { AstraSyncButton } from "./AstraSyncButton";
+import "./astra-sync.css";
 import React from "react";
 
 export function Weekly(props) {
@@ -9,6 +10,7 @@ export function Weekly(props) {
     scheduleItems = [],
     setSelectedSchedule,
     openAddSchedule,
+    onAstraSynced,
   } = props;
 
   if (activeMenu !== "WEEKLY") {
@@ -21,11 +23,15 @@ export function Weekly(props) {
         <h1>주간 시간표</h1>
 
         <div className="weekly-btn-group">
+          <AstraSyncButton onSynced={onAstraSynced} />
+          
           <button
             type="button"
             className="weekly-action-btn"
             onClick={() => openAddSchedule("unavailable")}
+            
           >
+          
             + 불가능 시간
           </button>
 

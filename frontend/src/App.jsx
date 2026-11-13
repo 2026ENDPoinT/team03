@@ -5,10 +5,14 @@ import { LoginScreen } from "./components/LoginScreen";
 import { SignupScreen } from "./components/SignupScreen";
 import { Dashboard } from "./components/Dashboard";
 import { Home } from "./components/Home";
-import { Weekly } from "./components/Weekly";
+import { WeeklyWithAstra as Weekly } from "./components/WeeklyWithAstra";
 import { Planner } from "./components/Planner";
 import { Grades } from "./components/Grades";
 import { Modals } from "./components/Modals";
+import {
+  fetchTimetableItems,
+  mergeTimetableItems,
+} from "./components/timetableAdapter";
 
 const WEEKDAYS = [
   "일요일", "월요일", "화요일", "수요일",
@@ -103,6 +107,7 @@ export function App() {
       type: "green",
       repeat: true,
     },
+
   ]);
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -656,7 +661,13 @@ export function App() {
     setCurrentView("dashboard");
     setActiveMenu("HOME");
   };
+  const refreshAstraTimetable = async () => {
+  const fetched = await fetchTimetableItems(hours);
 
+  setScheduleItems((prev) =>
+    mergeTimetableItems(prev, fetched)
+  );
+};
   const handleSignupSubmit = (e) => {
     e.preventDefault();
 
@@ -733,6 +744,7 @@ export function App() {
             scheduleItems,
             setSelectedSchedule,
             openAddSchedule,
+            onAstraSynced: refreshAstraTimetable,
           }}
         />
 
