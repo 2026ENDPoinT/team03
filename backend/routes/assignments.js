@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const db = require("../db");
 
 const router = express.Router();
@@ -100,6 +100,45 @@ router.post("/", (req, res) => {
     }
 });
 
+router.put("/:id", (req, res) => {
+    const id = Number(req.params.id);
+    const { subjectName, assignmentName, estimatedMinutes, dueDate } = req.body;
+
+    if (!Number.isInteger(id) || id <= 0) {
+        return res.status(400).json({ message: "올바른 과제 ID가 아닙니다." });
+    }
+    if (typeof subjectName !== "string" || subjectName.trim() === "") {
+        return res.status(400).json({ message: "과목명을 입력해 주세요." });
+    }
+    if (typeof assignmentName !== "string" || assignmentName.trim() === "") {
+        return res.status(400).json({ message: "과제명을 입력해 주세요." });
+    }
+    if (!Number.isInteger(estimatedMinutes) || estimatedMinutes <= 0) {
+        return res.status(400).json({ message: "소요 시간은 0보다 큰 분 단위 숫자로 입력해 주세요." });
+    }
+    if (!isValidDate(dueDate)) {
+        return res.status(400).json({ message: "마감일은 YYYY-MM-DD 형식으로 입력해 주세요." });
+    }
+
+    try {
+        const result = db.prepare(`
+            UPDATE assignments
+            SET subject_name = ?, assignment_name = ?, estimated_minutes = ?, due_date = ?
+            WHERE id = ?
+        `).run(subjectName.trim(), assignmentName.trim(), estimatedMinutes, dueDate, id);
+
+        if (result.changes === 0) {
+            return res.status(404).json({ message: "해당 과제를 찾을 수 없습니다." });
+        }
+        res.json({
+            message: "과제를 수정했습니다.",
+            assignment: { id, subjectName: subjectName.trim(), assignmentName: assignmentName.trim(), estimatedMinutes, dueDate }
+        });
+    } catch (error) {
+        console.error("과제 수정 오류:", error);
+        res.status(500).json({ message: "과제를 수정하지 못했습니다." });
+    }
+});
 router.delete("/:id", (req, res) => {
     const id = Number(req.params.id);
 

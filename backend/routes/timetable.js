@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const db = require("../db");
 
 const router = express.Router();
@@ -191,6 +191,25 @@ if (conflict) {
     }
 });
 
+router.put("/classes/:id", (req, res) => {
+    const id = Number(req.params.id);
+    const { subjectName, instructor = "", dayOfWeek, startTime, endTime } = req.body;
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ message: "올바른 수업 ID가 아닙니다." });
+    if (typeof subjectName !== "string" || subjectName.trim() === "") return res.status(400).json({ message: "과목명을 입력해 주세요." });
+    if (typeof instructor !== "string") return res.status(400).json({ message: "담당 교수 이름은 문자열로 입력해 주세요." });
+    if (!isValidDay(dayOfWeek)) return res.status(400).json({ message: "요일은 월요일 1부터 일요일 7 사이의 숫자로 입력해 주세요." });
+    if (!isValidTimeRange(startTime, endTime)) return res.status(400).json({ message: "시작·종료 시각을 30분 단위로 입력해 주세요. 종료는 시작보다 뒤여야 합니다." });
+    try {
+        const conflict = db.prepare(`SELECT name FROM unavailable_times WHERE day_of_week = ? AND repeat_weekly = 1 AND start_time < ? AND end_time > ? LIMIT 1`).get(dayOfWeek, endTime, startTime);
+        if (conflict) return res.status(409).json({ message: `수정하려는 시간은 불가능 시간("${conflict.name}")과 겹칩니다.` });
+        const result = db.prepare(`UPDATE timetable_classes SET subject_name = ?, instructor = ?, day_of_week = ?, start_time = ?, end_time = ? WHERE id = ?`).run(subjectName.trim(), instructor.trim(), dayOfWeek, startTime, endTime, id);
+        if (result.changes === 0) return res.status(404).json({ message: "해당 수업을 찾을 수 없습니다." });
+        res.json({ message: "시간표 수업을 수정했습니다.", class: { id, subjectName: subjectName.trim(), instructor: instructor.trim(), dayOfWeek, dayName: dayNames[dayOfWeek], startTime, endTime } });
+    } catch (error) {
+        console.error("수업 수정 오류:", error);
+        res.status(500).json({ message: "수업을 수정하지 못했습니다." });
+    }
+});
 router.delete("/classes/:id", (req, res) => {
     const id = Number(req.params.id);
 
@@ -319,6 +338,27 @@ if (conflict) {
     }
 });
 
+router.put("/unavailable-times/:id", (req, res) => {
+    const id = Number(req.params.id);
+    const { name, dayOfWeek, startTime, endTime, repeatWeekly = true, date = null } = req.body;
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ message: "올바른 불가능 시간 ID가 아닙니다." });
+    if (typeof name !== "string" || name.trim() === "") return res.status(400).json({ message: "불가능 시간 이름을 입력해 주세요." });
+    if (!isValidDay(dayOfWeek)) return res.status(400).json({ message: "요일은 월요일 1부터 일요일 7 사이의 숫자로 입력해 주세요." });
+    if (!isValidTimeRange(startTime, endTime)) return res.status(400).json({ message: "시작·종료 시각을 30분 단위로 입력해 주세요. 종료는 시작보다 뒤여야 합니다." });
+    if (typeof repeatWeekly !== "boolean") return res.status(400).json({ message: "repeatWeekly는 true 또는 false로 입력해 주세요." });
+    if (date !== null && !isValidDate(date)) return res.status(400).json({ message: "날짜는 YYYY-MM-DD 형식으로 입력해 주세요." });
+    if (!repeatWeekly && date === null) return res.status(400).json({ message: "매주 반복하지 않는 일정에는 date를 입력해 주세요." });
+    try {
+        const conflict = db.prepare(`SELECT subject_name FROM timetable_classes WHERE day_of_week = ? AND start_time < ? AND end_time > ? LIMIT 1`).get(dayOfWeek, endTime, startTime);
+        if (conflict) return res.status(409).json({ message: `수정하려는 시간은 수업 "${conflict.subject_name}"과 겹칩니다.` });
+        const result = db.prepare(`UPDATE unavailable_times SET name = ?, day_of_week = ?, start_time = ?, end_time = ?, repeat_weekly = ?, date = ? WHERE id = ?`).run(name.trim(), dayOfWeek, startTime, endTime, repeatWeekly ? 1 : 0, repeatWeekly ? null : date, id);
+        if (result.changes === 0) return res.status(404).json({ message: "해당 불가능 시간을 찾을 수 없습니다." });
+        res.json({ message: "불가능 시간을 수정했습니다.", unavailableTime: { id, name: name.trim(), dayOfWeek, dayName: dayNames[dayOfWeek], startTime, endTime, repeatWeekly, date: repeatWeekly ? null : date } });
+    } catch (error) {
+        console.error("불가능 시간 수정 오류:", error);
+        res.status(500).json({ message: "불가능 시간을 수정하지 못했습니다." });
+    }
+});
 router.delete("/unavailable-times/:id", (req, res) => {
     const id = Number(req.params.id);
 

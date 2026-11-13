@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const db = require("../db");
 
 const router = express.Router();
@@ -109,6 +109,44 @@ router.get("/courses", (req, res) => {
     }
 });
 
+// 과목 성적 수정
+router.put("/courses/:id", (req, res) => {
+    const id = Number(req.params.id);
+    const { subjectName, semester, credits, grade } = req.body;
+
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ message: "올바른 과목 ID가 아닙니다." });
+    if (typeof subjectName !== "string" || subjectName.trim() === "") return res.status(400).json({ message: "과목명을 입력해 주세요." });
+    if (typeof semester !== "string" || semester.trim() === "") return res.status(400).json({ message: "수강 학기를 입력해 주세요. 예: 2026-1" });
+    if (!Number.isFinite(credits) || credits <= 0) return res.status(400).json({ message: "학점 수는 0보다 큰 숫자로 입력해 주세요." });
+    if (typeof grade !== "string" || !Object.hasOwn(gradePoints, grade)) return res.status(400).json({ message: "올바른 성적 등급을 입력해 주세요." });
+
+    try {
+        const cleanSubjectName = subjectName.trim();
+        const cleanSemester = semester.trim();
+        const result = db.prepare(`
+            UPDATE courses SET subject_name = ?, semester = ?, credits = ?, grade = ? WHERE id = ?
+        `).run(cleanSubjectName, cleanSemester, credits, grade, id);
+        if (result.changes === 0) return res.status(404).json({ message: "해당 과목 성적을 찾을 수 없습니다." });
+        res.json({ message: "과목 성적이 수정되었습니다.", course: { id, subjectName: cleanSubjectName, semester: cleanSemester, credits, grade, gradePoint: gradePoints[grade] } });
+    } catch (error) {
+        console.error("과목 성적 수정 오류:", error);
+        res.status(500).json({ message: "과목 성적을 수정하지 못했습니다." });
+    }
+});
+
+// 과목 성적 삭제
+router.delete("/courses/:id", (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ message: "올바른 과목 ID가 아닙니다." });
+    try {
+        const result = db.prepare("DELETE FROM courses WHERE id = ?").run(id);
+        if (result.changes === 0) return res.status(404).json({ message: "해당 과목 성적을 찾을 수 없습니다." });
+        res.json({ message: "과목 성적이 삭제되었습니다." });
+    } catch (error) {
+        console.error("과목 성적 삭제 오류:", error);
+        res.status(500).json({ message: "과목 성적을 삭제하지 못했습니다." });
+    }
+});
 // 전체 및 학기별 GPA 조회
 router.get("/gpa", (req, res) => {
     try {
