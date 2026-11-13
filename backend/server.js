@@ -3,6 +3,7 @@ const cors = require("cors");
 const coursesRouter = require("./routes/courses");
 const timetableRouter = require("./routes/timetable");
 const assignmentsRouter = require("./routes/assignments");
+const astraRouter = require("./routes/astra");
 
 const app = express();
 const PORT = 3000;
@@ -21,6 +22,7 @@ app.get("/", (req, res) => {
 app.use("/api", coursesRouter);
 app.use("/api/timetable", timetableRouter);
 app.use("/api/assignments", assignmentsRouter);
+app.use("/api/astra", astraRouter);
 
 app.use((error, req, res, next) => {
     if (error instanceof SyntaxError && error.status === 400 && "body" in error) {
