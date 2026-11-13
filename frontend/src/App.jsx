@@ -1,8 +1,6 @@
 import { HomeWithServerGpa } from "./components/HomeWithServerGpa";
 import React, { useState } from "react";
 import "./App.css";
-import { LoginScreen } from "./components/LoginScreen";
-import { SignupScreen } from "./components/SignupScreen";
 import { Dashboard } from "./components/Dashboard";
 import { Home } from "./components/Home";
 import { WeeklyWithAstra as Weekly } from "./components/WeeklyWithAstra";
@@ -48,7 +46,7 @@ function formatDate(date) {
 }
 
 export function App() {
-  const [currentView, setCurrentView] = useState("login");
+  const [currentView, setCurrentView] = useState("dashboard");
   const [activeMenu, setActiveMenu] = useState("HOME");
 
   // 로그인 및 회원가입
@@ -429,45 +427,79 @@ export function App() {
 
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskForm, setTaskForm] = useState({
+    subjectName: "",
     title: "",
+    estimatedMinutes: 60,
     date: "2026-11-16",
   });
 
-  const handleAddTask = (e) => {
-    e.preventDefault();
-    if (!taskForm.title.trim() || !taskForm.date) return;
+  
+const handleAddTask = async (e) => {
+  e?.preventDefault();
 
-    const targetDate = new Date(`${taskForm.date}T12:00:00`);
-    const baseDate = new Date(2026, 10, 12, 12);
+  const subjectName = (taskForm.subjectName ?? "").trim();
+  const assignmentName = (taskForm.title ?? "").trim();
+  const estimatedMinutes = Number(taskForm.estimatedMinutes);
+  const dueDate = taskForm.date;
 
-    const diff = Math.round(
-      (targetDate - baseDate) / (1000 * 60 * 60 * 24)
+  if (!subjectName || !assignmentName) {
+    alert("과목명과 과제명을 입력해 주세요.");
+    return;
+  }
+
+  if (!Number.isInteger(estimatedMinutes) || estimatedMinutes <= 0) {
+    alert("예상 소요 시간을 올바르게 입력해 주세요.");
+    return;
+  }
+
+  if (!dueDate) {
+    alert("마감일을 선택해 주세요.");
+    return;
+  }
+
+  try {
+    console.log("과제 저장 요청 시작");
+
+    const response = await fetch(
+      "http://localhost:3000/api/assignments",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          subjectName,
+          assignmentName,
+          estimatedMinutes,
+          dueDate,
+        }),
+      }
     );
 
-    const ddayText =
-      diff === 0
-        ? "D-Day"
-        : diff > 0
-        ? `D-${diff}`
-        : `D+${Math.abs(diff)}`;
+    const result = await response.json();
 
-    setDdayList((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        title: taskForm.title.trim(),
-        dueDate: taskForm.date,
-        dday: ddayText,
-      },
-    ]);
+    if (!response.ok) {
+      throw new Error(result.error || result.message || "저장 실패");
+    }
+
+    console.log("과제 저장 성공:", result);
+
+    window.dispatchEvent(new Event("planner-tasks-updated"));
 
     setTaskForm({
+      subjectName: "",
       title: "",
+      estimatedMinutes: 60,
       date: "2026-11-16",
     });
 
     setShowTaskModal(false);
-  };
+  } catch (error) {
+    console.error("과제 저장 오류:", error);
+    alert("과제 저장 실패: " + error.message);
+  }
+};
+
 
   // GRADES
   const gradeToPoint = {
@@ -694,30 +726,7 @@ export function App() {
 
   return (
     <main className="anima-main">
-      <LoginScreen
-        {...{
-          currentView,
-          setCurrentView,
-          loginEmail,
-          setLoginEmail,
-          loginPassword,
-          setLoginPassword,
-          handleLoginSubmit,
-        }}
-      />
-
-      <SignupScreen
-        {...{
-          currentView,
-          setCurrentView,
-          signupValues,
-          setSignupValues,
-          handleSignupSubmit,
-          departments,
-          message,
-        }}
-      />
-
+      
       <Dashboard
         {...{
           currentView,
