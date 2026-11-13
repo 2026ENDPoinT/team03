@@ -6,7 +6,7 @@ export function Dashboard({ currentView, activeMenu, setActiveMenu, setCurrentVi
   return (
     <div className="home-wrapper">
       <aside className="home-sidebar">
-        <h1 className="sidebar-logo">MENU</h1>
+        <h1 className="sidebar-logo">PLANIT</h1>
         <nav className="sidebar-nav">
           {navItems.map((item) => {
             const isActive = activeMenu === item;
