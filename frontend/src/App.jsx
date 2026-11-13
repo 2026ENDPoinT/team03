@@ -19,11 +19,13 @@ const WEEKDAYS = [
   "목요일", "금요일", "토요일"
 ];
 
-const HOURS = [
-  "09:00", "09:30", "10:00", "10:30",
-  "11:00", "11:30", "12:00", "12:30",
-  "13:00", "13:30", "14:00"
-];
+const HOURS = Array.from({ length: 31 }, (_, i) => {
+  const totalMinutes = 9 * 60 + i * 30;
+  const hour = Math.floor(totalMinutes / 60) % 24;
+  const minute = totalMinutes % 60;
+
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+});
 
 const TIME_OPTIONS = [...HOURS, "14:30"];
 

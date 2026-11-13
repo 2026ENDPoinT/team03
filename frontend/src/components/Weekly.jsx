@@ -24,7 +24,7 @@ export function Weekly(props) {
 
         <div className="weekly-btn-group">
           <AstraSyncButton onSynced={onAstraSynced} />
-          
+
           <button
             type="button"
             className="weekly-action-btn"
@@ -78,19 +78,13 @@ export function Weekly(props) {
 
           {/* 시간표 격자 */}
           <div className="figma-grid-area">
-            {hours.map((_, rowIndex) => (
-              <div
-                key={rowIndex}
-                className="figma-grid-row"
-              >
-                {days.map((_, colIndex) => (
-                  <div
-                    key={colIndex}
-                    className="figma-grid-box"
-                  />
-                ))}
-              </div>
-            ))}
+            {hours.slice(0, -1).map((_, rIdx) => (
+  <div key={rIdx} className="figma-grid-row">
+    {days.map((_, cIdx) => (
+      <div key={cIdx} className="figma-grid-box" />
+    ))}
+  </div>
+))}
 
             {/* 등록된 일정 카드 */}
             {scheduleItems.map((item) => (

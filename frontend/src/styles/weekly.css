@@ -550,3 +550,72 @@
 .figma-submit-btn:hover {
   background-color: #2563eb;
 }
+/* WEEKLY: 기존 박스 높이 유지 + 내부 시간표 스크롤 */
+.figma-timetable-wrapper {
+  height: 519px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.figma-header-row {
+  flex-shrink: 0;
+}
+
+.figma-body-row {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  align-items: stretch;
+  scrollbar-width: thin;
+}
+
+.figma-time-col {
+  flex-shrink: 0;
+}
+
+.figma-time-cell {
+  height: 40px;
+  min-height: 40px;
+  box-sizing: border-box;
+}
+
+.figma-time-cell:last-child {
+  height: 20px;
+  min-height: 20px;
+}
+
+.figma-time-col {
+  flex: 0 0 90px;
+}
+
+.figma-time-cell {
+  height: 40px;
+  min-height: 40px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.figma-time-cell:last-child {
+  height: 20px;
+  min-height: 20px;
+}
+
+.figma-grid-area {
+  flex: 1;
+  min-height: 1200px;
+  position: relative;
+}
+
+.figma-grid-row {
+  height: 40px;
+  min-height: 40px;
+  box-sizing: border-box;
+}
+
+.figma-grid-row {
+  height: 40px;
+  min-height: 40px;
+  box-sizing: border-box;
+}
