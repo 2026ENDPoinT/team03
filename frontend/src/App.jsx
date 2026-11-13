@@ -1,4 +1,4 @@
-
+import { HomeWithServerGpa } from "./components/HomeWithServerGpa";
 import React, { useState } from "react";
 import "./App.css";
 import { LoginScreen } from "./components/LoginScreen";
@@ -713,7 +713,7 @@ export function App() {
           setCurrentView,
         }}
       >
-        <Home
+        <HomeWithServerGpa
           {...{
             activeMenu,
             setActiveMenu,
