@@ -4,6 +4,7 @@ const coursesRouter = require("./routes/courses");
 const timetableRouter = require("./routes/timetable");
 const assignmentsRouter = require("./routes/assignments");
 const astraRouter = require("./routes/astra");
+const astraAssignmentsRouter = require("./routes/astraAssignments");
 
 const app = express();
 const PORT = 3000;
@@ -23,6 +24,7 @@ app.use("/api", coursesRouter);
 app.use("/api/timetable", timetableRouter);
 app.use("/api/assignments", assignmentsRouter);
 app.use("/api/astra", astraRouter);
+app.use("/api/astra/assignments", astraAssignmentsRouter);
 
 app.use((error, req, res, next) => {
     if (error instanceof SyntaxError && error.status === 400 && "body" in error) {
